@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "vigia-haccp": {
+      "url": "http://<IP_DO>:8001/sse",
+      "type": "sse"
+    }
+  }
+}

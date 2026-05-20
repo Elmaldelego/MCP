@@ -5,7 +5,7 @@ services:
     image: emiliano280/vigia-mcp:latest
     container_name: vigia-mcp
     ports:
-      - "8000:8000"
+      - "8001:8000"
     environment:
       - PORT=8000
       - HOST=0.0.0.0

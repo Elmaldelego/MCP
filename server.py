@@ -41,6 +41,9 @@ from models import (
     ProcessStep, TimeTemperatureProfile, StepType, FraudThreat, DefenseThreat,
     EnvironmentalThreat, PestThreat, AllergenThreat 
 )
+from mcp.server.fastmcp.server import TransportSecuritySettings
+from starlette.middleware import Middleware
+from starlette.middleware.cors import CORSMiddleware
 
 # ── Configuración ─────────────────────────────────────────────────────────
 load_dotenv()
@@ -55,6 +58,12 @@ OUTPUT_DIR = Path(os.getenv("OUTPUT_DIR", "/tmp/vigia_outputs"))
 OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
 # ── Servidor MCP ──────────────────────────────────────────────────────────
+_cors_origins = os.getenv("CORS_ORIGINS", "").strip()
+if _cors_origins:
+    _allowed = [o.strip() for o in _cors_origins.split(",") if o.strip()]
+else:
+    _allowed = ["http://localhost:*", "http://127.0.0.1:*"]
+
 mcp = FastMCP(
     name="VIGÍA HACCP",
     instructions=(
@@ -62,6 +71,11 @@ mcp = FastMCP(
         "Genera planes HACCP completos (NOM-251, Codex Alimentarius) "
         "enriquecidos con retiros reales de la FDA. "
         "Exporta resultados en Excel con formato profesional."
+    ),
+    transport_security=TransportSecuritySettings(
+        enable_dns_rebinding_protection=False,
+        allowed_hosts=["*"],
+        allowed_origins=_allowed,
     ),
 )
 
@@ -721,6 +735,8 @@ def health_resource() -> str:
 # ── Entry point ───────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
+    import uvicorn
+
     port = int(os.getenv("PORT", 8000))
     host = os.getenv("HOST", "0.0.0.0")
     logger.info("=" * 60)
@@ -730,6 +746,12 @@ if __name__ == "__main__":
     logger.info("Dokploy    : conectar la URL pública de tu servicio + /sse")
     logger.info("SurfSense  : Settings → MCP Servers → URL: https://<dominio>/sse")
     logger.info("=" * 60)
-    mcp.settings.host = host
-    mcp.settings.port = port
-    mcp.run(transport="sse")
+
+    starlette_app = mcp.sse_app()
+    starlette_app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+    uvicorn.run(starlette_app, host=host, port=port, log_level="info")
