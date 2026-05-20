@@ -16,10 +16,31 @@ from pathlib import Path
 from dotenv import load_dotenv
 from mcp.server.fastmcp import FastMCP
 
-from models import ProcessStep, TimeTemperatureProfile, StepType
 from services.openfda import OpenFDAClient
 from services.haccp_generator import extract_fda_hazards, generate_haccp_rows
 from exporters.excel_exporter import export_to_excel
+from services.food_fraud_service import (
+    validate_context as vf_validate_context, 
+    get_fraud_reference_data as vf_get_reference, 
+    analyze_fraud_threats as vf_analyze_threats
+)
+from exporters.food_fraud_exporter import export_food_fraud_xlsx
+from services.food_defense_service import analyze_food_defense as vf_analyze_defense
+from exporters.food_defense_exporter import export_food_defense_xlsx
+from services.environmental_monitoring_service import (
+    validate_context as em_validate_context,
+    analyze_environmental_risks as em_analyze_risks
+)
+from exporters.environmental_monitoring_exporter import export_environmental_monitoring_xlsx
+from services.pest_management_service import (
+    validate_context as pm_validate_context,
+    analyze_pest_risks as pm_analyze_risks
+)
+from exporters.pest_management_exporter import export_pest_management_xlsx
+from models import (
+    ProcessStep, TimeTemperatureProfile, StepType, FraudThreat, DefenseThreat,
+    EnvironmentalThreat, PestThreat, AllergenThreat 
+)
 
 # ── Configuración ─────────────────────────────────────────────────────────
 load_dotenv()
@@ -371,6 +392,321 @@ async def generate_haccp_analysis(
     return json.dumps(result, ensure_ascii=False, indent=2)
 
 
+# ═══════════════════════════════════════════════════════════════════════════
+# FOOD FRAUD TOOLS
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def validate_context(available_context: str) -> str:
+    """
+    Tool de validación obligatoria (context gate). Debe llamarse siempre antes de cualquier análisis.
+    Evalúa si el contexto disponible cubre los 5 requisitos mínimos.
+    """
+    result = vf_validate_context(available_context)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def get_fraud_reference_data(ingredient: str) -> str:
+    """
+    Consulta la base de datos local de adulteraciones conocidas para un ingrediente específico.
+    """
+    result = vf_get_reference(ingredient)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def analyze_fraud_threats(
+    context: str,
+    gate_result_json: str,
+    company_name: str,
+    process_area: str
+) -> str:
+    """
+    Identifica las amenazas de fraude alimentario y asigna valores de Severidad y Ocurrencia.
+    """
+    try:
+        gate_result = json.loads(gate_result_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "gate_result_json must be a valid JSON string"})
+
+    result = vf_analyze_threats(context, gate_result, company_name, process_area)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def generate_food_fraud_xlsx(
+    threats_json: str,
+    company_name: str,
+    process_area: str,
+    evaluator_name: str,
+    evaluation_date: str,
+    gate_result_json: str,
+    analysis_metadata_json: str
+) -> str:
+    """
+    Genera el archivo XLSX con el formato oficial de análisis de fraude alimentario.
+    """
+    try:
+        threats_raw = json.loads(threats_json)
+        threats = [FraudThreat(**t) for t in threats_raw]
+        gate_result = json.loads(gate_result_json)
+        analysis_metadata = json.loads(analysis_metadata_json)
+    except Exception as e:
+        return json.dumps({"error": f"Error parsing inputs: {str(e)}"})
+
+    result = export_food_fraud_xlsx(
+        threats=threats,
+        company_name=company_name,
+        process_area=process_area,
+        evaluator_name=evaluator_name,
+        evaluation_date=evaluation_date,
+        gate_result=gate_result,
+        analysis_metadata=analysis_metadata,
+        output_dir=OUTPUT_DIR
+    )
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def analyze_food_defense(
+    context: str,
+    company_name: str,
+    process_area: str
+) -> str:
+    """
+    Realiza un análisis de vulnerabilidades de Food Defense (actos dolosos, sabotaje).
+    Identifica amenazas en áreas sensibles y calcula el nivel de riesgo MRO.
+    """
+    result = vf_analyze_defense(context, company_name, process_area)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def generate_food_defense_xlsx(
+    threats_json: str,
+    company_name: str,
+    process_area: str
+) -> str:
+    """
+    Genera el archivo XLSX con el formato oficial MRO de Food Defense.
+    """
+    try:
+        threats_raw = json.loads(threats_json)
+        threats = [DefenseThreat(**t) for t in threats_raw]
+    except Exception as e:
+        return json.dumps({"error": f"Error parsing inputs: {str(e)}"})
+
+    result = export_food_defense_xlsx(
+        threats=threats,
+        company_name=company_name,
+        process_area=process_area,
+        output_dir=OUTPUT_DIR
+    )
+    return result.model_dump_json()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ENVIRONMENTAL MONITORING TOOLS
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def validate_environmental_context(available_context: str) -> str:
+    """
+    Tool de validacion obligatoria (context gate) para Monitoreo Ambiental.
+    Debe llamarse siempre antes de cualquier analisis.
+    Evalua si el contexto disponible cubre los 5 requisitos minimos.
+    """
+    result = em_validate_context(available_context)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def analyze_environmental_risks(
+    context: str,
+    gate_result_json: str,
+    company_name: str,
+    process_area: str
+) -> str:
+    """
+    Identifica los riesgos microbiologicos ambientales por area de proceso
+    y asigna valores de Severidad y Ocurrencia segun la metodologia MRO.
+    """
+    try:
+        gate_result = json.loads(gate_result_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "gate_result_json must be a valid JSON string"})
+
+    result = em_analyze_risks(context, gate_result, company_name, process_area)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def generate_environmental_monitoring_xlsx(
+    threats_json: str,
+    company_name: str,
+    process_area: str,
+    gate_result_json: str
+) -> str:
+    """
+    Genera el archivo XLSX con el formato oficial de Analisis de Riesgo
+    de Monitoreo Ambiental Microbiologico.
+    """
+    try:
+        threats_raw = json.loads(threats_json)
+        threats = [EnvironmentalThreat(**t) for t in threats_raw]
+        gate_result = json.loads(gate_result_json)
+    except Exception as e:
+        return json.dumps({"error": f"Error parsing inputs: {str(e)}"})
+
+    result = export_environmental_monitoring_xlsx(
+        threats=threats,
+        company_name=company_name,
+        process_area=process_area,
+        gate_result=gate_result,
+        output_dir=OUTPUT_DIR
+    )
+    return result.model_dump_json()
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# PEST MANAGEMENT (MIP) TOOLS
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def validate_pest_context(available_context: str) -> str:
+    """
+    Tool de validacion obligatoria (context gate) para Control de Plagas (MIP).
+    Debe llamarse siempre antes de cualquier analisis.
+    Evalua si el contexto disponible cubre los 5 requisitos minimos.
+    """
+    result = pm_validate_context(available_context)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def analyze_pest_risks(
+    context: str,
+    gate_result_json: str,
+    company_name: str,
+    process_area: str
+) -> str:
+    """
+    Identifica los riesgos de plagas por area operativa de la planta
+    y asigna valores de Severidad y Ocurrencia segun la matriz 5x5.
+    """
+    try:
+        gate_result = json.loads(gate_result_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "gate_result_json must be a valid JSON string"})
+
+    result = pm_analyze_risks(context, gate_result, company_name, process_area)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def generate_pest_management_xlsx(
+    threats_json: str,
+    company_name: str,
+    process_area: str,
+    gate_result_json: str
+) -> str:
+    """
+    Genera el archivo XLSX con el formato oficial de Analisis de Riesgo
+    del programa de Control de Plagas (MIP).
+    """
+    try:
+        threats_raw = json.loads(threats_json)
+        threats = [PestThreat(**t) for t in threats_raw]
+        gate_result = json.loads(gate_result_json)
+    except Exception as e:
+        return json.dumps({"error": f"Error parsing inputs: {str(e)}"})
+
+    result = export_pest_management_xlsx(
+        threats=threats,
+        company_name=company_name,
+        process_area=process_area,
+        gate_result=gate_result,
+        output_dir=OUTPUT_DIR
+    )
+    return result.model_dump_json()
+
+
+from services.allergen_management_service import (
+    validate_context as al_validate_context,
+    analyze_allergen_risks as al_analyze_risks
+)
+from exporters.allergen_management_exporter import export_allergen_management_xlsx
+
+
+# ═══════════════════════════════════════════════════════════════════════════
+# ALLERGEN MANAGEMENT TOOLS
+# ═══════════════════════════════════════════════════════════════════════════
+
+@mcp.tool()
+def validate_allergen_context(available_context: str) -> str:
+    """
+    Tool de validacion obligatoria (context gate) para Gestion de Alergenos.
+    Debe llamarse siempre antes de cualquier analisis.
+    Evalua si el contexto disponible cubre los 5 requisitos minimos.
+    """
+    result = al_validate_context(available_context)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def analyze_allergen_risks(
+    context: str,
+    gate_result_json: str,
+    company_name: str,
+    process_area: str
+) -> str:
+    """
+    Identifica los riesgos de contacto cruzado de alergenos por area
+    y asigna valores de Severidad (I-IV) y Ocurrencia (A-E) segun matriz GFSI.
+    """
+    try:
+        gate_result = json.loads(gate_result_json)
+    except json.JSONDecodeError:
+        return json.dumps({"error": "gate_result_json must be a valid JSON string"})
+
+    result = al_analyze_risks(context, gate_result, company_name, process_area)
+    return result.model_dump_json()
+
+
+@mcp.tool()
+def generate_allergen_management_xlsx(
+    threats_json: str,
+    company_name: str,
+    process_area: str,
+    evaluator_name: str,
+    evaluation_date: str,
+    materials_involved: str,
+    gate_result_json: str
+) -> str:
+    """
+    Genera el archivo XLSX con el formato oficial de Analisis de Riesgo
+    de Gestion de Alergenos.
+    """
+    try:
+        threats_raw = json.loads(threats_json)
+        threats = [AllergenThreat(**t) for t in threats_raw]
+        gate_result = json.loads(gate_result_json)
+    except Exception as e:
+        return json.dumps({"error": f"Error parsing inputs: {str(e)}"})
+
+    result = export_allergen_management_xlsx(
+        threats=threats,
+        company_name=company_name,
+        process_area=process_area,
+        evaluator_name=evaluator_name,
+        evaluation_date=evaluation_date,
+        materials_involved=materials_involved,
+        gate_result=gate_result,
+        output_dir=OUTPUT_DIR
+    )
+    return result.model_dump_json()
+
 # ── Health check (para Dokploy / Docker HEALTHCHECK) ─────────────────────
 # FastMCP expone automáticamente GET / → 200 OK cuando usa transporte SSE.
 # El Dockerfile hace HEALTHCHECK apuntando a /health; lo registramos aquí
@@ -394,4 +730,6 @@ if __name__ == "__main__":
     logger.info("Dokploy    : conectar la URL pública de tu servicio + /sse")
     logger.info("SurfSense  : Settings → MCP Servers → URL: https://<dominio>/sse")
     logger.info("=" * 60)
+    mcp.settings.host = host
+    mcp.settings.port = port
     mcp.run(transport="sse")

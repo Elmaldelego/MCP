@@ -1,0 +1,129 @@
+{
+  "ingredients": {
+    "miel": {
+      "vulnerability_index": "high",
+      "price_volatility": "high",
+      "known_fraud_methods": [
+        {
+          "method": "Dilución con jarabes de glucosa o fructosa",
+          "adulterant": "jarabe de maíz de alta fructosa, glucosa",
+          "frequency": "common",
+          "detection": "RMN, análisis isotópico C13/C14, cromatografía de azúcares",
+          "references": ["USP Food Fraud Database", "RASFF 2022-0341"]
+        },
+        {
+          "method": "Sustitución de origen geográfico",
+          "adulterant": "miel importada declarada como local",
+          "frequency": "common",
+          "detection": "Análisis isotópico, palinología",
+          "references": ["EFSA Journal 2023"]
+        }
+      ]
+    },
+    "aceite_de_oliva": {
+      "vulnerability_index": "high",
+      "price_volatility": "medium",
+      "known_fraud_methods": [
+        {
+          "method": "Mezcla con aceites vegetales más baratos",
+          "adulterant": "aceite de girasol, colza, avellana o palma",
+          "frequency": "common",
+          "detection": "Perfil de ácidos grasos (GC-FID), espectroscopia UV-Vis",
+          "references": ["EU Food Fraud Network", "USP Food Fraud Database"]
+        },
+        {
+          "method": "Aceite de orujo vendido como virgen extra",
+          "adulterant": "aceite de orujo refinado",
+          "frequency": "occasional",
+          "detection": "Análisis de esteroles y dialcoholes triterpénicos",
+          "references": ["IOC Standards"]
+        }
+      ]
+    },
+    "leche_en_polvo": {
+      "vulnerability_index": "high",
+      "price_volatility": "medium",
+      "known_fraud_methods": [
+        {
+          "method": "Adición de compuestos nitrogenados no proteicos",
+          "adulterant": "melamina, urea",
+          "frequency": "rare",
+          "detection": "LC-MS/MS, método Kjeldahl modificado",
+          "references": ["WHO Food Safety", "RASFF Historical"]
+        },
+        {
+          "method": "Sustitución de grasa láctea",
+          "adulterant": "grasas vegetales (aceite de palma)",
+          "frequency": "occasional",
+          "detection": "Análisis de triglicéridos por GC",
+          "references": ["USP Food Fraud Database"]
+        }
+      ]
+    },
+    "especias": {
+      "vulnerability_index": "high",
+      "price_volatility": "high",
+      "known_fraud_methods": [
+        {
+          "method": "Adición de colorantes artificiales o rellenos",
+          "adulterant": "Sudan Red, almidón, serrín, cáscaras de frutos secos",
+          "frequency": "common",
+          "detection": "Microscopía, HPLC, detección de alérgenos",
+          "references": ["ESA - European Spice Association", "RASFF"]
+        }
+      ]
+    },
+    "jugo_de_naranja": {
+      "vulnerability_index": "medium",
+      "price_volatility": "high",
+      "known_fraud_methods": [
+        {
+          "method": "Dilución con agua y adición de azúcares/ácidos",
+          "adulterant": "agua, azúcar de caña o remolacha, ácido cítrico",
+          "frequency": "common",
+          "detection": "Análisis isotópico (SIRA), perfil de oligosacáridos",
+          "references": ["AIJN Code of Practice"]
+        }
+      ]
+    },
+    "carne_de_res": {
+      "vulnerability_index": "medium",
+      "price_volatility": "medium",
+      "known_fraud_methods": [
+        {
+          "method": "Sustitución de especie",
+          "adulterant": "carne de caballo, cerdo o ave",
+          "frequency": "occasional",
+          "detection": "PCR (ADN), ELISA",
+          "references": ["Food Standards Agency", "EFSA"]
+        }
+      ]
+    },
+    "aguacate": {
+      "vulnerability_index": "medium",
+      "price_volatility": "high",
+      "known_fraud_methods": [
+        {
+          "method": "Falsificación de origen geográfico",
+          "adulterant": "aguacate de zonas no certificadas",
+          "frequency": "occasional",
+          "detection": "Trazabilidad documental, análisis multielemental",
+          "references": ["SENASICA"]
+        }
+      ]
+    },
+    "oregano": {
+      "vulnerability_index": "high",
+      "price_volatility": "medium",
+      "known_fraud_methods": [
+        {
+          "method": "Adulteración con hojas de otras plantas",
+          "adulterant": "hojas de olivo, mirto, zumaque",
+          "frequency": "common",
+          "detection": "Microscopía, perfil de terpenos",
+          "references": ["RASFF", "USP Food Fraud Database"]
+        }
+      ]
+    }
+  }
+}
