@@ -38,6 +38,6 @@ EXPOSE 8000
 
 # Health check para Dokploy
 HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
-    CMD python -c "import httpx; httpx.get('http://localhost:${PORT}/health', timeout=5)" || exit 1
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:${PORT}/sse', timeout=5)" || exit 1
 
 CMD ["python", "server.py"]
